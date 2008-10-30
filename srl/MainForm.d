@@ -110,7 +110,7 @@ public class MainForm : Form {
       x      = 0;
       y      = 110;
       width  = this.clientSize.width;
-      height = this.clientSize.height - 110 - 20;
+      height = this.clientSize.height - 110 - 30;
     }
     this.mainPanel.bounds = rect;
   }
