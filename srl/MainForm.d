@@ -3,9 +3,6 @@ module srl.MainForm;
 import std.stdio;
 import std.path;
 import std.process;
-/*import win32.psapi;
-import win32.winbase;
-import win32.windows;*/
 import dfl.all;
 
 public class MainForm : Form {
@@ -147,6 +144,6 @@ public class MainForm : Form {
     assert(this.fileName);
     string dir  = std.path.getDirName(this.fileName);
     string base = std.path.getBaseName(this.fileName);
-    std.process.system("cmd /C ruby -C\"" ~ dir ~ "\" \"" ~ base ~ "\" & pause");
+    std.process.system("ruby -C\"" ~ dir ~ "\" \"" ~ base ~ "\" & pause");
   }
 }
