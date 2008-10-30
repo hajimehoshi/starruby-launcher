@@ -14,6 +14,7 @@ public class MainForm : Form {
       return new Font("Georgia", size,
                       FontStyle.REGULAR, GraphicsUnit.POINT, FontSmoothing.ON);
     }
+    this.suspendLayout();
     with (this) {
       allowDrop = true;
       backColor = Color(0xff, 0xdd, 0xcc, 0xcc);
@@ -46,6 +47,7 @@ public class MainForm : Form {
       parent = this.mainPanel;
     }
     this.updateNotationLabel();
+    this.resumeLayout(false);
   }
 
   public string fileName() {
