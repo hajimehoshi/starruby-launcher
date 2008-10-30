@@ -1,13 +1,19 @@
 module srl.MainForm;
 
+import std.stdio;
+import std.path;
+import std.process;
+/*import win32.psapi;
+import win32.winbase;
+import win32.windows;*/
 import dfl.all;
-import win32.psapi;
 
 public class MainForm : Form {
 
   private Panel titlePanel;
   private Panel mainPanel;
   private Label notationLabel;
+  private Button runButton;
 
   public this() {
     Font createFont(float size) {
@@ -46,11 +52,20 @@ public class MainForm : Form {
       location = Point(30, 15);
       parent = this.mainPanel;
     }
+    with (this.runButton = new Button()) {
+      text = "Run";    
+      parent = this.mainPanel;
+      click ~= &this.runButton_click;
+    }
     this.updateNotationLabel();
+    this.updateRunButton();
     this.resumeLayout(false);
+    assert(this.fileName is null);
   }
 
-  public string fileName() {
+  public string fileName() out {
+    assert(this.isAcceptableFileName(this._fileName));
+  } body {
     return this._fileName;
   }
   public string fileName(string _fileName) in {
@@ -58,9 +73,10 @@ public class MainForm : Form {
   } body {
     this._fileName = _fileName;
     this.updateNotationLabel();
+    this.updateRunButton();
     return _fileName;
   }
-  private string _fileName;
+  private string _fileName = null;
 
   public bool isAcceptableFileName(string fileName) {
     return (fileName is null) ||
@@ -74,6 +90,11 @@ public class MainForm : Form {
     } else {
       this.notationLabel.text = "Drag and Drop your Ruby script here!";
     }
+  }
+
+  private void updateRunButton() {
+    assert(this.runButton);
+    this.runButton.enabled = (this.fileName !is null);
   }
 
   protected override void onDragOver(DragEventArgs e) {
@@ -113,9 +134,19 @@ public class MainForm : Form {
       height = this.clientSize.height - 110 - 30;
     }
     this.mainPanel.bounds = rect;
+    with (rect) {
+      x      = 20;
+      y      = this.runButton.parent.clientSize.height - 60;
+      width  = this.runButton.parent.clientSize.width - 40;
+      height = 40;
+    }
+    this.runButton.bounds = rect;
   }
 
-  private void run() {
-    //CreateProcess();
+  private void runButton_click(Control control, EventArgs e) {
+    assert(this.fileName);
+    string dir  = std.path.getDirName(this.fileName);
+    string base = std.path.getBaseName(this.fileName);
+    std.process.system("cmd /C ruby -C\"" ~ dir ~ "\" \"" ~ base ~ "\" & pause");
   }
 }
