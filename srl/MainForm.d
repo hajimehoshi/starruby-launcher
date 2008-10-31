@@ -1,12 +1,13 @@
 module srl.MainForm;
 
+//import std.c.windows.windows;
 import std.stdio;
 import std.path;
 import std.process;
-/*import win32.psapi;
-import win32.winbase;
-import win32.windows;*/
 import dfl.all;
+import win32.psapi;
+import win32.winbase;
+import win32.windows;
 
 public class MainForm : Form {
 
@@ -147,6 +148,51 @@ public class MainForm : Form {
     assert(this.fileName);
     string dir  = std.path.getDirName(this.fileName);
     string base = std.path.getBaseName(this.fileName);
-    std.process.system("cmd /C ruby -C\"" ~ dir ~ "\" \"" ~ base ~ "\" & pause");
+    //std.process.system("ruby -C\"" ~ dir ~ "\" \"" ~ base ~ "\" & pause");
+    /*SECURITY_ATTRIBUTES saAttr;
+    with (saAttr) {
+      nLength = SECURITY_ATTRIBUTES.sizeof;
+      bInheritHandle = true;
+      lpSecurityDescriptor = null;
+    }
+    HANDLE hChildStdinRd;
+    HANDLE hChildStdinWr;
+    HANDLE hChildStdinWrDup;
+    CreatePipe(&hChildStdinRd, &hChildStdinWr, &saAttr, 0);
+    DuplicateHandle(
+      GetCurrentProcess(),
+      hChildStdinWr,
+      GetCurrentProcess(),
+      &hChildStdinWrDup,
+      0,
+      false,
+      DUPLICATE_SAME_ACCESS);
+    CloseHandle(hChildStdinWr);
+    HANDLE hChildStdoutRd;
+    HANDLE hChildStdoutWr;
+    HANDLE hChildStdoutRdDup;
+    CreatePipe(&hChildStdoutRd, &hChildStdoutWr, &saAttr, 0);
+    DuplicateHandle(
+      GetCurrentProcess(),
+      hChildStdoutRd,
+      GetCurrentProcess(),
+      &hChildStdoutRdDup,
+      0,
+      false,
+      DUPLICATE_SAME_ACCESS);
+    CloseHandle(hChildStdoutRd);
+    HANDLE hChildStderrRd;
+    HANDLE hChildStderrWr;
+    HANDLE hChildStderrRdDup;
+    CreatePipe(&hChildStderrRd, &hChildStderrWr, &saAttr, 0);
+    DuplicateHandle(
+      GetCurrentProcess(),
+      hChildStderrRd,
+      GetCurrentProcess(),
+      &hChildStderrRdDup,
+      0,
+      false,
+      DUPLICATE_SAME_ACCESS);
+    CloseHandle(hChildStderrRd);*/
   }
 }
