@@ -12,7 +12,7 @@ public class MainForm : Form {
   private Panel mainPanel;
   private Label notationLabel;
   private Button runButton;
-  private Thread outThread;
+  private Timer stdoutTimer;
 
   private Process process;
 
@@ -148,20 +148,27 @@ public class MainForm : Form {
     assert(this.fileName);
     string dir  = std.path.getDirName(this.fileName);
     string base = std.path.getBaseName(this.fileName);
-    //this.process = new Process("ruby -C\"" ~ dir ~ "\" \"" ~ base ~ "\"",
-    this.process = new Process("ruby -e 'puts \"Hello\"'");
-    /*this.outThread = new Thread({
-      while (true) {
-        byte[] output = this.process.readStandardOutput();
-        if (output is null) {
-          break;
-        }
-        writef(cast(char[])output);
-        fflush(stdout);
-      }
-      return 0;
-    });
-    this.outThread.start();*/
+    this.process = new Process("ruby -C\"" ~ dir ~ "\" \"" ~ base ~ "\"");
+    if (this.stdoutTimer) {
+      this.stdoutTimer.stop();
+    }
+    this.stdoutTimer = new Timer();
+    with (this.stdoutTimer) {
+      interval = 20;
+      tick ~= &this.stdoutTimer_tick;
+      start();
+    }
+  }
+
+  private void stdoutTimer_tick(Timer serder, EventArgs e) {
+    byte[4096] buffer;
+    size_t size;
+    if (this.process.readStandardOutput(buffer, size)) {
+      writef(cast(char[])buffer[0 .. size]);
+    } else {
+      this.stdoutTimer.stop();
+      this.stdoutTimer = null;
+    }
   }
 
 }

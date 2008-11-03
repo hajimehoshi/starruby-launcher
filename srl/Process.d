@@ -23,7 +23,7 @@ package class Process {
     // Standard Output
     HANDLE hChildStdoutRd;
     HANDLE hChildStdoutWr;
-    CreatePipe(&hChildStdoutRd, &hChildStdoutWr, &saAttr, 1024);
+    CreatePipe(&hChildStdoutRd, &hChildStdoutWr, &saAttr, 0);
     DuplicateHandle(
       GetCurrentProcess(),
       hChildStdoutRd,
@@ -36,7 +36,7 @@ package class Process {
     // Standard Error
     HANDLE hChildStderrRd;
     HANDLE hChildStderrWr;
-    CreatePipe(&hChildStderrRd, &hChildStderrWr, &saAttr, 1024);
+    CreatePipe(&hChildStderrRd, &hChildStderrWr, &saAttr, 0);
     DuplicateHandle(
       GetCurrentProcess(),
       hChildStderrRd,
@@ -80,7 +80,6 @@ package class Process {
                        null,
                        &dwAvail,
                        null)) {
-      // Error
       return false;
     }
     if (0 < dwAvail) {
@@ -91,21 +90,17 @@ package class Process {
                    &dwRead,
                    null)) {
         if (0 < dwRead) {
-          // Success
           size = dwRead;
           return true;
         } else {
-          // Terminated
           return false;
         }
       } else {
         DWORD rc = GetLastError();
         if (rc == ERROR_MORE_DATA) {
-          // Success
           size = dwRead;
           return true;
         } else {
-          // Error
           return false;
         }
       }
