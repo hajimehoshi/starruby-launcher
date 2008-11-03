@@ -128,7 +128,7 @@ package class Process {
 }
 
 unittest {
-  Process process = new Process("ruby -e '5000.times{|i| puts i}'");
+  Process process = new Process("ruby -e '3000.times{|i| puts i}'");
   byte[] result;
   while (true) {
     byte[4096] buffer;
@@ -143,7 +143,7 @@ unittest {
     }
   }
   char[] expected = "";
-  for (int i = 0; i < 5000; i++) {
+  for (int i = 0; i < 3000; i++) {
     expected ~= std.string.toString(i) ~ std.path.linesep;
   }
   assert(cast(char[])result == expected);

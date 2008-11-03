@@ -10,6 +10,8 @@ public class MainForm : Form {
 
   private Panel titlePanel;
   private Panel mainPanel;
+  private Panel paddingUpperPanel;
+  private Panel paddingLowerPanel;
   private Label notationLabel;
   private Button runButton;
   private Timer stdoutTimer;
@@ -24,7 +26,6 @@ public class MainForm : Form {
     this.suspendLayout();
     with (this) {
       allowDrop = true;
-      backColor = Color(0xff, 0xdd, 0xcc, 0xcc);
       clientSize = Size(640, 480);
       startPosition = FormStartPosition.CENTER_SCREEN;
       text = "Star Ruby Launcher";
@@ -42,6 +43,10 @@ public class MainForm : Form {
       parent = this.titlePanel;
       text = "Star Ruby Launcher";
     }
+    with (this.paddingUpperPanel = new Panel()) {
+      backColor = Color(0xff, 0xdd, 0xcc, 0xcc);
+      parent = this;
+    }
     with (this.mainPanel = new Panel()) {
       backColor = Color(0xff, 0xff, 0xff, 0xff);
       parent = this;
@@ -57,6 +62,10 @@ public class MainForm : Form {
       text = "Run";    
       parent = this.mainPanel;
       click ~= &this.runButton_click;
+    }
+    with (this.paddingLowerPanel = new Panel()) {
+      backColor = Color(0xff, 0xdd, 0xcc, 0xcc);
+      parent = this;
     }
     this.updateNotationLabel();
     this.updateRunButton();
@@ -129,17 +138,26 @@ public class MainForm : Form {
     }
     this.titlePanel.bounds = rect;
     with (rect) {
-      x      = 0;
-      y      = 110;
-      width  = this.clientSize.width;
-      height = this.clientSize.height - 110 - 30;
+      y      += height;
+      height =  30;
+    }
+    this.paddingUpperPanel.bounds = rect;
+    with (rect) {
+      y      += height;
+      height =  this.clientSize.height - y - 30;
     }
     this.mainPanel.bounds = rect;
     with (rect) {
+      y      += height;
+      height =  this.clientSize.height - y;
+    }
+    this.paddingLowerPanel.bounds = rect;
+    with (rect) {
+      Size parentSize = this.runButton.parent.clientSize;
       x      = 20;
-      y      = this.runButton.parent.clientSize.height - 60;
-      width  = this.runButton.parent.clientSize.width - 40;
+      width  = parentSize.width - x * 2;
       height = 40;
+      y      = parentSize.height - height - 20;
     }
     this.runButton.bounds = rect;
   }
