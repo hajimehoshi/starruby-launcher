@@ -1,15 +1,17 @@
 module main;
 
-import dfl.all;
-import srl.MainForm;
+private import dfl.all;
+private import srl.MainForm;
+private import srl.Model;
 
 void main(string[] args) {
   Application.autoCollect = false; // for Drag & Drop
-  MainForm mainForm = new MainForm();
+  Model model = new Model();
+  MainForm mainForm = new MainForm(model);
   if (1 < args.length) {
     string arg = args[1];
-    if (mainForm.isAcceptableFileName(arg)) {
-      mainForm.fileName = arg;
+    if (model.isAcceptableFileName(arg)) {
+      model.fileName = arg;
     }
   }
   Application.run(mainForm);

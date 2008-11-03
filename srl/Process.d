@@ -69,10 +69,12 @@ package class Process {
     CloseHandle(this.piProcInfo.hThread);
     CloseHandle(hChildStdoutWr);
     CloseHandle(hChildStderrWr);
+    this.isRunning = true;
   }
 
   public bool readStandardOutput(byte[] buffer, out size_t size) {
     assert(this.hChildStdoutRdDup);
+    assert(this.isRunning);
     DWORD dwAvail;
     if (!PeekNamedPipe(this.hChildStdoutRdDup,
                        null,
@@ -80,6 +82,7 @@ package class Process {
                        null,
                        &dwAvail,
                        null)) {
+      this.isRunning = false;
       return false;
     }
     if (0 < dwAvail) {
@@ -93,6 +96,7 @@ package class Process {
           size = dwRead;
           return true;
         } else {
+          this.isRunning = false;
           return false;
         }
       } else {
@@ -101,6 +105,7 @@ package class Process {
           size = dwRead;
           return true;
         } else {
+          this.isRunning = false;
           return false;
         }
       }
@@ -113,32 +118,47 @@ package class Process {
   public void kill() {
     assert(this.hChildStdoutRdDup);
     assert(this.hChildStderrRdDup);
+    assert(this.isRunning);
     TerminateProcess(this.piProcInfo.hProcess, 0);
     CloseHandle(this.hChildStdoutRdDup);
     CloseHandle(this.hChildStderrRdDup);
+    this.isRunning = false;
   }
-  
+
   public void close() {
     assert(this.hChildStdoutRdDup);
     assert(this.hChildStderrRdDup);
+    assert(!this.isRunning);
     CloseHandle(this.hChildStdoutRdDup);
     CloseHandle(this.hChildStderrRdDup);
+    this.isRunning = false;
   }
+
+  public bool isRunning() {
+    return this._isRunning;
+  }
+  private bool isRunning(bool value) {
+    return this._isRunning = value;
+  }
+  private bool _isRunning = false;
 
 }
 
 unittest {
   Process process = new Process("ruby -e '3000.times{|i| puts i}'");
+  assert(process.isRunning);
   byte[] result;
   while (true) {
     byte[4096] buffer;
     size_t size;
     if (process.readStandardOutput(buffer, size)) {
+      assert(process.isRunning);
       if (0 < size) {
         byte[] output = buffer[0 .. size];
         result ~= output;
       }
     } else {
+      assert(!process.isRunning);
       break;
     }
   }
@@ -147,5 +167,6 @@ unittest {
     expected ~= std.string.toString(i) ~ std.path.linesep;
   }
   assert(cast(char[])result == expected);
+  assert(!process.isRunning);
   process.close();
 }

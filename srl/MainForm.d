@@ -1,24 +1,26 @@
 module srl.MainForm;
 
 private import std.stdio;
-private import std.path;
-private import std.thread;
 private import dfl.all;
+private import srl.IView;
+private import srl.Model;
 private import srl.Process;
 
-public class MainForm : Form {
+public class MainForm : Form, IView {
 
+  private Model model;
   private Panel titlePanel;
   private Panel mainPanel;
   private Panel paddingUpperPanel;
   private Panel paddingLowerPanel;
   private Label notationLabel;
   private Button runButton;
+  private Button stopButton;
   private Timer stdoutTimer;
 
-  private Process process;
-
-  public this() {
+  public this(Model model) {
+    this.model = model;
+    model.view = this;
     Font createFont(float size) {
       return new Font("Georgia", size,
                       FontStyle.REGULAR, GraphicsUnit.POINT, FontSmoothing.ON);
@@ -63,48 +65,35 @@ public class MainForm : Form {
       parent = this.mainPanel;
       click ~= &this.runButton_click;
     }
+    with (this.stopButton = new Button()) {
+      text = "Stop";
+      parent = this.mainPanel;
+      click ~= &this.stopButton_click;
+    }
     with (this.paddingLowerPanel = new Panel()) {
       backColor = Color(0xff, 0xdd, 0xcc, 0xcc);
       parent = this;
     }
-    this.updateNotationLabel();
-    this.updateRunButton();
+    this.updateView();
     this.resumeLayout(false);
-    assert(this.fileName is null);
   }
 
-  public string fileName() out {
-    assert(this.isAcceptableFileName(this._fileName));
-  } body {
-    return this._fileName;
-  }
-  public string fileName(string _fileName) in {
-    assert(this.isAcceptableFileName(_fileName));
-  } body {
-    this._fileName = _fileName;
-    this.updateNotationLabel();
-    this.updateRunButton();
-    return _fileName;
-  }
-  private string _fileName = null;
-
-  public bool isAcceptableFileName(string fileName) {
-    return (fileName is null) ||
-      (std.file.exists(fileName) && std.file.isfile(fileName));
-  }
-
-  private void updateNotationLabel() {
+  public void updateView() {
     assert(this.notationLabel);
-    if (this.fileName) {
-      this.notationLabel.text = std.path.getBaseName(this.fileName);
+    assert(this.runButton);
+    assert(this.stopButton);
+    if (this.model.fileName) {
+      this.notationLabel.text = std.path.getBaseName(this.model.fileName);
     } else {
       this.notationLabel.text = "Drag and Drop your Ruby script here!";
     }
-  }
-
-  private void updateRunButton() {
-    assert(this.runButton);
-    this.runButton.enabled = (this.fileName !is null);
+    this.runButton.enabled =
+      this.model.fileName !is null &&
+        (this.model.process is null || !this.model.process.isRunning);
+    this.stopButton.enabled =
+      this.model.fileName !is null &&
+        this.model.process !is null &&
+          this.model.process.isRunning;
   }
 
   protected override void onDragOver(DragEventArgs e) {
@@ -114,7 +103,7 @@ public class MainForm : Form {
       string[] fileNames = data.getStrings();
       if (0 < fileNames.length) {
         string fileName = fileNames[0];
-        if (this.isAcceptableFileName(fileName)) {
+        if (this.model.isAcceptableFileName(fileName)) {
           e.effect = e.allowedEffect & DragDropEffects.MOVE;
         }
       }
@@ -124,7 +113,7 @@ public class MainForm : Form {
   protected override void onDragDrop(DragEventArgs e) {
     super.onDragDrop(e);
     Data data = e.data.getData(DataFormats.fileDrop, false);
-    this.fileName = data.getStrings()[0];
+    this.model.fileName = data.getStrings()[0];
   }
 
   protected override void onLayout(LayoutEventArgs e) {
@@ -155,18 +144,24 @@ public class MainForm : Form {
     with (rect) {
       Size parentSize = this.runButton.parent.clientSize;
       x      = 20;
-      width  = parentSize.width - x * 2;
+      width  = parentSize.width / 2 - cast(int)(x * 1.5);
       height = 40;
       y      = parentSize.height - height - 20;
     }
     this.runButton.bounds = rect;
+    with (rect) {
+      x += width + 20;
+    }
+    this.stopButton.bounds = rect;
   }
 
   private void runButton_click(Control control, EventArgs e) {
-    assert(this.fileName);
-    string dir  = std.path.getDirName(this.fileName);
-    string base = std.path.getBaseName(this.fileName);
-    this.process = new Process("ruby -C\"" ~ dir ~ "\" \"" ~ base ~ "\"");
+    assert(this.model.fileName);
+    assert(this.model.process is null || !this.model.process.isRunning);
+    string dir = std.path.getDirName(this.model.fileName);
+    string base = std.path.getBaseName(this.model.fileName);
+    string command = "ruby -C\"" ~ dir ~ "\" \"" ~ base ~ "\"";
+    this.model.process = new Process(command);
     if (this.stdoutTimer) {
       this.stdoutTimer.stop();
     }
@@ -178,15 +173,27 @@ public class MainForm : Form {
     }
   }
 
+  private void stopButton_click(Control control, EventArgs e) {
+    assert(this.model.process);
+    assert(this.model.process.isRunning);
+    this.model.process.kill();
+    this.stdoutTimer.stop();
+    this.stdoutTimer = null;
+    this.updateView(); // ?
+  }
+
   private void stdoutTimer_tick(Timer serder, EventArgs e) {
+    assert(this.model.process);
+    assert(this.model.process.isRunning);
     byte[4096] buffer;
     size_t size;
-    if (this.process.readStandardOutput(buffer, size)) {
+    if (this.model.process.readStandardOutput(buffer, size)) {
       writef(cast(char[])buffer[0 .. size]);
     } else {
       this.stdoutTimer.stop();
       this.stdoutTimer = null;
     }
+    this.updateView(); // ?
   }
 
 }
