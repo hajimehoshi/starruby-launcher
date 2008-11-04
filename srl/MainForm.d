@@ -88,12 +88,9 @@ public class MainForm : Form, IView {
       this.notationLabel.text = "Drag and Drop your Ruby script here!";
     }
     this.runButton.enabled =
-      this.model.fileName !is null &&
-        (this.model.process is null || !this.model.process.isRunning);
+      this.model.fileName !is null && !this.model.isGameRunning;
     this.stopButton.enabled =
-      this.model.fileName !is null &&
-        this.model.process !is null &&
-          this.model.process.isRunning;
+      this.model.fileName !is null && this.model.isGameRunning;
   }
 
   protected override void onDragOver(DragEventArgs e) {
@@ -157,11 +154,8 @@ public class MainForm : Form, IView {
 
   private void runButton_click(Control control, EventArgs e) {
     assert(this.model.fileName);
-    assert(this.model.process is null || !this.model.process.isRunning);
-    string dir = std.path.getDirName(this.model.fileName);
-    string base = std.path.getBaseName(this.model.fileName);
-    string command = "ruby -C\"" ~ dir ~ "\" \"" ~ base ~ "\"";
-    this.model.process = new Process(command);
+    assert(!this.model.isGameRunning);
+    this.model.runGame();
     if (this.stdoutTimer) {
       this.stdoutTimer.stop();
     }
@@ -174,26 +168,22 @@ public class MainForm : Form, IView {
   }
 
   private void stopButton_click(Control control, EventArgs e) {
-    assert(this.model.process);
-    assert(this.model.process.isRunning);
-    this.model.process.kill();
+    assert(this.model.isGameRunning);
+    this.model.stopGame();
     this.stdoutTimer.stop();
     this.stdoutTimer = null;
-    this.updateView(); // ?
   }
 
   private void stdoutTimer_tick(Timer serder, EventArgs e) {
-    assert(this.model.process);
-    assert(this.model.process.isRunning);
+    assert(this.model.isGameRunning);
     byte[4096] buffer;
     size_t size;
-    if (this.model.process.readStandardOutput(buffer, size)) {
+    if (this.model.readAsyncGameStdOut(buffer, size)) {
       writef(cast(char[])buffer[0 .. size]);
     } else {
       this.stdoutTimer.stop();
       this.stdoutTimer = null;
     }
-    this.updateView(); // ?
   }
 
 }

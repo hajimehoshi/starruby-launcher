@@ -34,12 +34,30 @@ public class Model {
   }
   private string _fileName = null;
 
-  public Process process() {
-    return this._process;
+  private Process gameProcess;
+
+  public void runGame() {
+    string dir = std.path.getDirName(this.fileName);
+    string base = std.path.getBaseName(this.fileName);
+    string command = "ruby -C\"" ~ dir ~ "\" \"" ~ base ~ "\"";
+    this.gameProcess = new Process(command);
+    this.view.updateView();
   }
-  public Process process(Process value) {
-    return this._process = value;
+
+  public void stopGame() {
+    assert(this.isGameRunning);
+    this.gameProcess.kill();
+    this.view.updateView();
   }
-  private Process _process = null;
+
+  public bool readAsyncGameStdOut(byte[] buffer, out size_t size) {
+    bool result = this.gameProcess.readAsyncStdOut(buffer, size);
+    this.view.updateView();
+    return result;
+  }
+
+  public bool isGameRunning() {
+    return (this.gameProcess !is null) && this.gameProcess.isRunning;
+  }
 
 }

@@ -72,7 +72,7 @@ package class Process {
     this.isRunning = true;
   }
 
-  public bool readStandardOutput(byte[] buffer, out size_t size) {
+  public bool readAsyncStdOut(byte[] buffer, out size_t size) {
     assert(this.hChildStdoutRdDup);
     assert(this.isRunning);
     DWORD dwAvail;
@@ -151,7 +151,7 @@ unittest {
   while (true) {
     byte[4096] buffer;
     size_t size;
-    if (process.readStandardOutput(buffer, size)) {
+    if (process.readAsyncStdOut(buffer, size)) {
       assert(process.isRunning);
       if (0 < size) {
         byte[] output = buffer[0 .. size];
