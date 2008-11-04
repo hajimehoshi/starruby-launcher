@@ -10,8 +10,8 @@ private import win32.windows;
 package class Process {
 
   private PROCESS_INFORMATION piProcInfo;
-  private HANDLE hChildStdoutRdDup;
-  private HANDLE hChildStderrRdDup;
+  private HANDLE hChildStdOutRdDup;
+  private HANDLE hChildStdErrRdDup;
 
   public this(string command) {
     SECURITY_ATTRIBUTES saAttr;
@@ -21,37 +21,37 @@ package class Process {
       bInheritHandle = true;
     }
     // Standard Output
-    HANDLE hChildStdoutRd;
-    HANDLE hChildStdoutWr;
-    CreatePipe(&hChildStdoutRd, &hChildStdoutWr, &saAttr, 0);
+    HANDLE hChildStdOutRd;
+    HANDLE hChildStdOutWr;
+    CreatePipe(&hChildStdOutRd, &hChildStdOutWr, &saAttr, 0);
     DuplicateHandle(
       GetCurrentProcess(),
-      hChildStdoutRd,
+      hChildStdOutRd,
       GetCurrentProcess(),
-      &this.hChildStdoutRdDup,
+      &this.hChildStdOutRdDup,
       0,
       false,
       DUPLICATE_SAME_ACCESS);
-    CloseHandle(hChildStdoutRd);
+    CloseHandle(hChildStdOutRd);
     // Standard Error
-    HANDLE hChildStderrRd;
-    HANDLE hChildStderrWr;
-    CreatePipe(&hChildStderrRd, &hChildStderrWr, &saAttr, 0);
+    HANDLE hChildStdErrRd;
+    HANDLE hChildStdErrWr;
+    CreatePipe(&hChildStdErrRd, &hChildStdErrWr, &saAttr, 0);
     DuplicateHandle(
       GetCurrentProcess(),
-      hChildStderrRd,
+      hChildStdErrRd,
       GetCurrentProcess(),
-      &this.hChildStderrRdDup,
+      &this.hChildStdErrRdDup,
       0,
       false,
       DUPLICATE_SAME_ACCESS);
-    CloseHandle(hChildStderrRd);
+    CloseHandle(hChildStdErrRd);
     STARTUPINFO siStartInfo;
     with (siStartInfo) {
       cb = STARTUPINFO.sizeof;
       dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
-      hStdOutput = hChildStdoutWr;
-      hStdError = hChildStderrWr;
+      hStdOutput = hChildStdOutWr;
+      hStdError = hChildStdErrWr;
       wShowWindow = SW_HIDE;
     }
     int result = CreateProcess(
@@ -67,16 +67,16 @@ package class Process {
       &(this.piProcInfo));
     assert(result);
     CloseHandle(this.piProcInfo.hThread);
-    CloseHandle(hChildStdoutWr);
-    CloseHandle(hChildStderrWr);
+    CloseHandle(hChildStdOutWr);
+    CloseHandle(hChildStdErrWr);
     this.isRunning = true;
   }
 
   public bool readAsyncStdOut(byte[] buffer, out size_t size) {
-    assert(this.hChildStdoutRdDup);
+    assert(this.hChildStdOutRdDup);
     assert(this.isRunning);
     DWORD dwAvail;
-    if (!PeekNamedPipe(this.hChildStdoutRdDup,
+    if (!PeekNamedPipe(this.hChildStdOutRdDup,
                        null,
                        0,
                        null,
@@ -87,7 +87,7 @@ package class Process {
     }
     if (0 < dwAvail) {
       DWORD dwRead;
-      if (ReadFile(this.hChildStdoutRdDup,
+      if (ReadFile(this.hChildStdOutRdDup,
                    buffer.ptr,
                    min(dwAvail, buffer.length),
                    &dwRead,
@@ -116,21 +116,21 @@ package class Process {
   }
 
   public void kill() {
-    assert(this.hChildStdoutRdDup);
-    assert(this.hChildStderrRdDup);
+    assert(this.hChildStdOutRdDup);
+    assert(this.hChildStdErrRdDup);
     assert(this.isRunning);
     TerminateProcess(this.piProcInfo.hProcess, 0);
-    CloseHandle(this.hChildStdoutRdDup);
-    CloseHandle(this.hChildStderrRdDup);
+    CloseHandle(this.hChildStdOutRdDup);
+    CloseHandle(this.hChildStdErrRdDup);
     this.isRunning = false;
   }
 
   public void close() {
-    assert(this.hChildStdoutRdDup);
-    assert(this.hChildStderrRdDup);
+    assert(this.hChildStdOutRdDup);
+    assert(this.hChildStdErrRdDup);
     assert(!this.isRunning);
-    CloseHandle(this.hChildStdoutRdDup);
-    CloseHandle(this.hChildStderrRdDup);
+    CloseHandle(this.hChildStdOutRdDup);
+    CloseHandle(this.hChildStdErrRdDup);
     this.isRunning = false;
   }
 

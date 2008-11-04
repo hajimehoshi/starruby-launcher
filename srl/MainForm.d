@@ -74,6 +74,11 @@ public class MainForm : Form, IView {
       backColor = Color(0xff, 0xdd, 0xcc, 0xcc);
       parent = this;
     }
+    with (this.stdoutTimer = new Timer()) {
+      enabled = false;
+      interval = 20;
+      tick ~= &this.stdoutTimer_tick;
+    }
     this.updateView();
     this.resumeLayout(false);
   }
@@ -82,15 +87,26 @@ public class MainForm : Form, IView {
     assert(this.notationLabel);
     assert(this.runButton);
     assert(this.stopButton);
+    assert(this.stdoutTimer);
+    string newText;
     if (this.model.fileName) {
-      this.notationLabel.text = std.path.getBaseName(this.model.fileName);
+      newText = std.path.getBaseName(this.model.fileName);
     } else {
-      this.notationLabel.text = "Drag and Drop your Ruby script here!";
+      newText = "Drag and Drop your Ruby script here!";
     }
-    this.runButton.enabled =
-      this.model.fileName !is null && !this.model.isGameRunning;
-    this.stopButton.enabled =
-      this.model.fileName !is null && this.model.isGameRunning;
+    if (this.notationLabel.text != newText) {
+      this.notationLabel.text = newText;
+    }
+    if (this.model.fileName) {
+      this.runButton.enabled  = !this.model.isGameRunning;
+      this.stopButton.enabled = this.model.isGameRunning;
+    } else {
+      this.runButton.enabled  = false;
+      this.stopButton.enabled = false;
+    }
+    if (this.stdoutTimer.enabled != this.model.isGameRunning) {
+      this.stdoutTimer.enabled = this.model.isGameRunning;
+    }
   }
 
   protected override void onDragOver(DragEventArgs e) {
@@ -155,23 +171,15 @@ public class MainForm : Form, IView {
   private void runButton_click(Control control, EventArgs e) {
     assert(this.model.fileName);
     assert(!this.model.isGameRunning);
-    this.model.runGame();
     if (this.stdoutTimer) {
       this.stdoutTimer.stop();
     }
-    this.stdoutTimer = new Timer();
-    with (this.stdoutTimer) {
-      interval = 20;
-      tick ~= &this.stdoutTimer_tick;
-      start();
-    }
+    this.model.runGame();
   }
 
   private void stopButton_click(Control control, EventArgs e) {
     assert(this.model.isGameRunning);
     this.model.stopGame();
-    this.stdoutTimer.stop();
-    this.stdoutTimer = null;
   }
 
   private void stdoutTimer_tick(Timer serder, EventArgs e) {
@@ -180,9 +188,6 @@ public class MainForm : Form, IView {
     size_t size;
     if (this.model.readAsyncGameStdOut(buffer, size)) {
       writef(cast(char[])buffer[0 .. size]);
-    } else {
-      this.stdoutTimer.stop();
-      this.stdoutTimer = null;
     }
   }
 

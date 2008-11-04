@@ -29,7 +29,7 @@ public class Model {
     assert(this.isAcceptableFileName(value));
   } body {
     this._fileName = value;
-    this.view.updateView();
+    this.onUpdated();
     return value;
   }
   private string _fileName = null;
@@ -41,23 +41,33 @@ public class Model {
     string base = std.path.getBaseName(this.fileName);
     string command = "ruby -C\"" ~ dir ~ "\" \"" ~ base ~ "\"";
     this.gameProcess = new Process(command);
-    this.view.updateView();
+    this.onUpdated();
   }
 
   public void stopGame() {
     assert(this.isGameRunning);
     this.gameProcess.kill();
-    this.view.updateView();
+    this.onUpdated();
   }
 
   public bool readAsyncGameStdOut(byte[] buffer, out size_t size) {
     bool result = this.gameProcess.readAsyncStdOut(buffer, size);
-    this.view.updateView();
+    this.onUpdated();
     return result;
   }
 
   public bool isGameRunning() {
     return (this.gameProcess !is null) && this.gameProcess.isRunning;
+  }
+
+  protected void onUpdated() {
+    this.view.updateView();
+  }
+
+  protected void onGameStarted() {
+  }
+
+  protected void onGameStopped() {
   }
 
 }
