@@ -171,13 +171,11 @@ public class MainForm : Form, IView {
   private void runButton_click(Control control, EventArgs e) {
     assert(this.model.fileName);
     assert(!this.model.isGameRunning);
-    if (this.stdoutTimer) {
-      this.stdoutTimer.stop();
-    }
     this.model.runGame();
   }
 
   private void stopButton_click(Control control, EventArgs e) {
+    assert(this.model.fileName);
     assert(this.model.isGameRunning);
     this.model.stopGame();
   }
