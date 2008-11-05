@@ -16,7 +16,8 @@ public class MainForm : Form, IView {
   private Label notationLabel;
   private Button runButton;
   private Button stopButton;
-  private Timer stdoutTimer;
+  private Timer stdOutTimer;
+  private Timer stdErrTimer;
 
   public this(Model model) {
     this.model = model;
@@ -74,10 +75,15 @@ public class MainForm : Form, IView {
       backColor = Color(0xff, 0xdd, 0xcc, 0xcc);
       parent = this;
     }
-    with (this.stdoutTimer = new Timer()) {
+    with (this.stdOutTimer = new Timer()) {
       enabled = false;
       interval = 20;
-      tick ~= &this.stdoutTimer_tick;
+      tick ~= &this.outputTimer_tick!(OutputType.STD_OUT);
+    }
+    with (this.stdErrTimer = new Timer()) {
+      enabled = false;
+      interval = 20;
+      tick ~= &this.outputTimer_tick!(OutputType.STD_ERR);
     }
     this.updateView();
     this.resumeLayout(false);
@@ -87,7 +93,8 @@ public class MainForm : Form, IView {
     assert(this.notationLabel);
     assert(this.runButton);
     assert(this.stopButton);
-    assert(this.stdoutTimer);
+    assert(this.stdOutTimer);
+    assert(this.stdErrTimer);
     string newText;
     if (this.model.fileName) {
       newText = std.path.getBaseName(this.model.fileName);
@@ -104,9 +111,8 @@ public class MainForm : Form, IView {
       this.runButton.enabled  = false;
       this.stopButton.enabled = false;
     }
-    if (this.stdoutTimer.enabled != this.model.isGameRunning) {
-      this.stdoutTimer.enabled = this.model.isGameRunning;
-    }
+    this.stdOutTimer.enabled = this.model.isGameRunning;
+    this.stdErrTimer.enabled = this.model.isGameRunning;
   }
 
   protected override void onDragOver(DragEventArgs e) {
@@ -180,13 +186,18 @@ public class MainForm : Form, IView {
     this.model.stopGame();
   }
 
-  private void stdoutTimer_tick(Timer serder, EventArgs e) {
+  private void outputTimer_tick(OutputType ot)(Timer serder, EventArgs e) {
     assert(this.model.isGameRunning);
     byte[4096] buffer;
     size_t size;
-    if (this.model.readAsyncGame!(OutputType.STD_OUT)(buffer, size)) {
-      writef(cast(char[])buffer[0 .. size]);
+    if (this.model.readAsyncGame!(ot)(buffer, size)) {
+      static if (ot == OutputType.STD_OUT) {
+        writef(cast(char[])buffer[0 .. size]);
+      } else static if (ot == OutputType.STD_ERR) {
+        writef(cast(char[])buffer[0 .. size]);
+      } else {
+        assert(0);
+      }
     }
   }
-
 }
