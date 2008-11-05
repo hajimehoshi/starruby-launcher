@@ -4,7 +4,7 @@ private import std.stdio;
 private import dfl.all;
 private import srl.IView;
 private import srl.Model;
-private import srl.Process;
+private import srl.OutputType;
 
 public class MainForm : Form, IView {
 
@@ -184,7 +184,7 @@ public class MainForm : Form, IView {
     assert(this.model.isGameRunning);
     byte[4096] buffer;
     size_t size;
-    if (this.model.readAsyncGameStdOut(buffer, size)) {
+    if (this.model.readAsyncGame!(OutputType.STD_OUT)(buffer, size)) {
       writef(cast(char[])buffer[0 .. size]);
     }
   }

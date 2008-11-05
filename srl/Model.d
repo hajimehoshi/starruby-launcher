@@ -3,6 +3,7 @@ module srl.Model;
 private import std.file;
 private import std.path;
 private import srl.IView;
+private import srl.OutputType;
 private import srl.Process;
 
 public class Model {
@@ -50,8 +51,8 @@ public class Model {
     this.onUpdated();
   }
 
-  public bool readAsyncGameStdOut(byte[] buffer, out size_t size) {
-    bool result = this.gameProcess.readAsyncStdOut(buffer, size);
+  public bool readAsyncGame(OutputType outputType)(byte[] buffer, out size_t size) {
+    bool result = this.gameProcess.readAsync!(outputType)(buffer, size);
     this.onUpdated();
     return result;
   }
@@ -62,12 +63,6 @@ public class Model {
 
   protected void onUpdated() {
     this.view.updateView();
-  }
-
-  protected void onGameStarted() {
-  }
-
-  protected void onGameStopped() {
   }
 
 }

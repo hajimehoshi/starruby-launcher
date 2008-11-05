@@ -6,6 +6,7 @@ private import std.string;
 private import win32.psapi;
 private import win32.winbase;
 private import win32.windows;
+private import srl.OutputType;
 
 package class Process {
 
@@ -72,11 +73,19 @@ package class Process {
     this.isRunning = true;
   }
 
-  public bool readAsyncStdOut(byte[] buffer, out size_t size) {
-    assert(this.hChildStdOutRdDup);
+  public bool readAsync(OutputType outputType)(byte[] buffer, out size_t size) {
     assert(this.isRunning);
+    static if (outputType == OutputType.STD_OUT) {
+      assert(this.hChildStdOutRdDup);
+      HANDLE handle = this.hChildStdOutRdDup;
+    } else static if (outputType == OutputType.STD_ERR) {
+      assert(this.hChildStdErrRdDup);
+      HANDLE handle = this.hChildStdErrRdDup;
+    } else {
+      static assert(0);
+    }
     DWORD dwAvail;
-    if (!PeekNamedPipe(this.hChildStdOutRdDup,
+    if (!PeekNamedPipe(handle,
                        null,
                        0,
                        null,
@@ -87,7 +96,7 @@ package class Process {
     }
     if (0 < dwAvail) {
       DWORD dwRead;
-      if (ReadFile(this.hChildStdOutRdDup,
+      if (ReadFile(handle,
                    buffer.ptr,
                    min(dwAvail, buffer.length),
                    &dwRead,
@@ -151,7 +160,7 @@ unittest {
   while (true) {
     byte[4096] buffer;
     size_t size;
-    if (process.readAsyncStdOut(buffer, size)) {
+    if (process.readAsync!(OutputType.STD_OUT)(buffer, size)) {
       assert(process.isRunning);
       if (0 < size) {
         byte[] output = buffer[0 .. size];
