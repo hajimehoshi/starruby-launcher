@@ -30,7 +30,11 @@ public class Model {
     assert(this.isAcceptableFileName(value));
   } body {
     this._fileName = value;
-    this.onUpdated();
+    if (this.isGameRunning) {
+      this.stopGame();
+    } else {
+      this.onUpdated();
+    }
     return value;
   }
   private string _fileName = null;
@@ -38,6 +42,7 @@ public class Model {
   private Process gameProcess;
 
   public void runGame() {
+    assert(!this.isGameRunning);
     string dir = std.path.getDirName(this.fileName);
     string base = std.path.getBaseName(this.fileName);
     string command = "ruby -C\"" ~ dir ~ "\" \"" ~ base ~ "\"";
@@ -52,6 +57,7 @@ public class Model {
   }
 
   public bool readAsyncGame(OutputType ot)(byte[] buffer, out size_t size) {
+    assert(buffer);
     bool result = this.gameProcess.readAsync!(ot)(buffer, size);
     this.onUpdated();
     return result;

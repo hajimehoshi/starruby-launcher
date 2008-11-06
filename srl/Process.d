@@ -14,7 +14,9 @@ package class Process {
   private HANDLE hChildStdOutRdDup;
   private HANDLE hChildStdErrRdDup;
 
-  public this(string command) {
+  public this(string command) in {
+    assert(command);
+  } body {
     SECURITY_ATTRIBUTES saAttr;
     with (saAttr) {
       nLength = SECURITY_ATTRIBUTES.sizeof;
@@ -24,8 +26,10 @@ package class Process {
     // Standard Output
     HANDLE hChildStdOutRd;
     HANDLE hChildStdOutWr;
-    CreatePipe(&hChildStdOutRd, &hChildStdOutWr, &saAttr, 0);
-    DuplicateHandle(
+    BOOL result;
+    result = CreatePipe(&hChildStdOutRd, &hChildStdOutWr, &saAttr, 0);
+    assert(result);
+    result = DuplicateHandle(
       GetCurrentProcess(),
       hChildStdOutRd,
       GetCurrentProcess(),
@@ -33,12 +37,15 @@ package class Process {
       0,
       false,
       DUPLICATE_SAME_ACCESS);
-    CloseHandle(hChildStdOutRd);
+    assert(result);
+    result = CloseHandle(hChildStdOutRd);
+    assert(result);
     // Standard Error
     HANDLE hChildStdErrRd;
     HANDLE hChildStdErrWr;
-    CreatePipe(&hChildStdErrRd, &hChildStdErrWr, &saAttr, 0);
-    DuplicateHandle(
+    result = CreatePipe(&hChildStdErrRd, &hChildStdErrWr, &saAttr, 0);
+    assert(result);
+    result = DuplicateHandle(
       GetCurrentProcess(),
       hChildStdErrRd,
       GetCurrentProcess(),
@@ -46,7 +53,9 @@ package class Process {
       0,
       false,
       DUPLICATE_SAME_ACCESS);
-    CloseHandle(hChildStdErrRd);
+    assert(result);
+    result = CloseHandle(hChildStdErrRd);
+    assert(result);
     STARTUPINFO siStartInfo;
     with (siStartInfo) {
       cb = STARTUPINFO.sizeof;
@@ -55,7 +64,7 @@ package class Process {
       hStdError = hChildStdErrWr;
       wShowWindow = SW_HIDE;
     }
-    int result = CreateProcess(
+    result = CreateProcess(
       null,
       std.utf.toUTF16z(command),
       null,
@@ -67,9 +76,12 @@ package class Process {
       &siStartInfo,
       &(this.piProcInfo));
     assert(result);
-    CloseHandle(this.piProcInfo.hThread);
-    CloseHandle(hChildStdOutWr);
-    CloseHandle(hChildStdErrWr);
+    result = CloseHandle(this.piProcInfo.hThread);
+    assert(result);
+    result = CloseHandle(hChildStdOutWr);
+    assert(result);
+    result = CloseHandle(hChildStdErrWr);
+    assert(result);
     this.isRunning = true;
   }
 
@@ -129,8 +141,13 @@ package class Process {
     assert(this.hChildStdErrRdDup);
     assert(this.isRunning);
     TerminateProcess(this.piProcInfo.hProcess, 0);
-    CloseHandle(this.hChildStdOutRdDup);
-    CloseHandle(this.hChildStdErrRdDup);
+    BOOL result;
+    result = CloseHandle(this.hChildStdOutRdDup);
+    assert(result);
+    result = CloseHandle(this.hChildStdErrRdDup);
+    assert(result);
+    this.hChildStdOutRdDup = NULL;
+    this.hChildStdErrRdDup = NULL;
     this.isRunning = false;
   }
 
@@ -138,8 +155,13 @@ package class Process {
     assert(this.hChildStdOutRdDup);
     assert(this.hChildStdErrRdDup);
     assert(!this.isRunning);
-    CloseHandle(this.hChildStdOutRdDup);
-    CloseHandle(this.hChildStdErrRdDup);
+    BOOL result;
+    result = CloseHandle(this.hChildStdOutRdDup);
+    assert(result);
+    result = CloseHandle(this.hChildStdErrRdDup);
+    assert(result);
+    this.hChildStdOutRdDup = NULL;
+    this.hChildStdErrRdDup = NULL;
     this.isRunning = false;
   }
 
@@ -154,7 +176,7 @@ package class Process {
 }
 
 unittest {
-  Process process = new Process("ruby -e '3000.times{|i| puts i}'");
+  Process process = new Process("ruby -e '1000.times{|i| puts i}'");
   assert(process.isRunning);
   byte[] result;
   while (true) {
@@ -172,7 +194,7 @@ unittest {
     }
   }
   char[] expected = "";
-  for (int i = 0; i < 3000; i++) {
+  for (int i = 0; i < 1000; i++) {
     expected ~= std.string.toString(i) ~ std.path.linesep;
   }
   assert(cast(char[])result == expected);

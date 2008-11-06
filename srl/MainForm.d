@@ -14,6 +14,7 @@ public class MainForm : Form, IView {
   private Panel paddingUpperPanel;
   private Panel paddingLowerPanel;
   private Label notationLabel;
+  private TextBox outputTextBox;
   private Button runButton;
   private Button stopButton;
   private Timer stdOutTimer;
@@ -60,6 +61,12 @@ public class MainForm : Form, IView {
       foreColor = Color(0xff, 0x33, 0x22, 0x22);
       location = Point(30, 15);
       parent = this.mainPanel;
+    }
+    with (this.outputTextBox = new TextBox()) {
+      multiline = true;
+      parent = this.mainPanel;
+      scrollBars = ScrollBars.VERTICAL;
+      readOnly = true;
     }
     with (this.runButton = new Button()) {
       text = "Run";    
@@ -115,8 +122,17 @@ public class MainForm : Form, IView {
     this.stdErrTimer.enabled = this.model.isGameRunning;
   }
 
+  protected override void onDragEnter(DragEventArgs e) {
+    super.onDragEnter(e);
+    this.doDragEvent(e);
+  }
+
   protected override void onDragOver(DragEventArgs e) {
     super.onDragEnter(e);
+    this.doDragEvent(e);
+  }
+
+  private void doDragEvent(DragEventArgs e) {
     if (e.data.getDataPresent(DataFormats.fileDrop)) {
       Data data = e.data.getData(DataFormats.fileDrop, false);
       string[] fileNames = data.getStrings();
@@ -131,8 +147,13 @@ public class MainForm : Form, IView {
 
   protected override void onDragDrop(DragEventArgs e) {
     super.onDragDrop(e);
+    assert(e.data.getDataPresent(DataFormats.fileDrop));
     Data data = e.data.getData(DataFormats.fileDrop, false);
-    this.model.fileName = data.getStrings()[0];
+    string[] fileNames = data.getStrings();
+    assert(0 < fileNames.length);
+    string fileName = fileNames[0];
+    assert(this.model.isAcceptableFileName(fileName));
+    this.model.fileName = fileName;
   }
 
   protected override void onLayout(LayoutEventArgs e) {
@@ -160,6 +181,14 @@ public class MainForm : Form, IView {
       height =  this.clientSize.height - y;
     }
     this.paddingLowerPanel.bounds = rect;
+    with (rect) {
+      Size parentSize = this.outputTextBox.parent.clientSize;
+      x      = 20;
+      y      = this.notationLabel.bounds.bottom + 20;
+      width  = parentSize.width - 40;
+      height = parentSize.height - y - 80;
+    }
+    this.outputTextBox.bounds = rect;
     with (rect) {
       Size parentSize = this.runButton.parent.clientSize;
       x      = 20;
@@ -190,14 +219,18 @@ public class MainForm : Form, IView {
     assert(this.model.isGameRunning);
     byte[4096] buffer;
     size_t size;
-    if (this.model.readAsyncGame!(ot)(buffer, size)) {
-      static if (ot == OutputType.STD_OUT) {
-        writef(cast(char[])buffer[0 .. size]);
-      } else static if (ot == OutputType.STD_ERR) {
-        writef(cast(char[])buffer[0 .. size]);
-      } else {
-        assert(0);
+    if (this.model.readAsyncGame!(ot)(buffer, size) && 0 < size) {
+      string text = cast(char[])buffer[0 .. size];
+      while (true) {
+        try {
+          std.utf.validate(text);
+        } catch (std.utf.UtfException ex) {
+          text[ex.idx] = '?';
+          continue;
+        }
+        break;
       }
+      this.outputTextBox.appendText(text);
     }
   }
 }
