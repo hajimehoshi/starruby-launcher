@@ -140,13 +140,15 @@ package class Process {
     assert(this.hChildStdOutRdDup);
     assert(this.hChildStdErrRdDup);
     assert(this.isRunning);
-    TerminateProcess(this.piProcInfo.hProcess, 0);
+    assert(this.piProcInfo.hProcess);
     BOOL result;
+    result = TerminateProcess(this.piProcInfo.hProcess, 0);
+    assert(result);
     result = CloseHandle(this.hChildStdOutRdDup);
     assert(result);
+    this.hChildStdOutRdDup = NULL;
     result = CloseHandle(this.hChildStdErrRdDup);
     assert(result);
-    this.hChildStdOutRdDup = NULL;
     this.hChildStdErrRdDup = NULL;
     this.isRunning = false;
   }
@@ -158,9 +160,9 @@ package class Process {
     BOOL result;
     result = CloseHandle(this.hChildStdOutRdDup);
     assert(result);
+    this.hChildStdOutRdDup = NULL;
     result = CloseHandle(this.hChildStdErrRdDup);
     assert(result);
-    this.hChildStdOutRdDup = NULL;
     this.hChildStdErrRdDup = NULL;
     this.isRunning = false;
   }
