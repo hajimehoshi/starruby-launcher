@@ -133,6 +133,7 @@ public class MainForm : Form, IView {
   }
 
   private void doDragEvent(DragEventArgs e) {
+    assert(e.data);
     if (e.data.getDataPresent(DataFormats.fileDrop)) {
       Data data = e.data.getData(DataFormats.fileDrop, false);
       string[] fileNames = data.getStrings();
@@ -147,6 +148,7 @@ public class MainForm : Form, IView {
 
   protected override void onDragDrop(DragEventArgs e) {
     super.onDragDrop(e);
+    assert(e.data);
     assert(e.data.getDataPresent(DataFormats.fileDrop));
     Data data = e.data.getData(DataFormats.fileDrop, false);
     string[] fileNames = data.getStrings();

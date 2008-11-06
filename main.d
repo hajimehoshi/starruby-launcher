@@ -3,9 +3,6 @@ module main;
 private import dfl.all;
 private import srl.MainForm;
 private import srl.Model;
-debug {
-  private import reflection;
-}
 
 void main(string[] args) {
   Application.autoCollect = false; // for Drag & Drop
