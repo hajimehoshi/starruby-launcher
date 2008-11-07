@@ -85,7 +85,7 @@ package class Process {
     this.isRunning = true;
   }
 
-  public bool readAsync(OutputType outputType)(byte[] buffer, out size_t size) {
+  public size_t readAsync(OutputType outputType)(byte[] buffer) {
     assert(this.isRunning);
     static if (outputType == OutputType.STD_OUT) {
       assert(this.hChildStdOutRdDup);
@@ -104,7 +104,7 @@ package class Process {
                        &dwAvail,
                        null)) {
       this.isRunning = false;
-      return false;
+      return 0;
     }
     if (0 < dwAvail) {
       DWORD dwRead;
@@ -114,25 +114,22 @@ package class Process {
                    &dwRead,
                    null)) {
         if (0 < dwRead) {
-          size = dwRead;
-          return true;
+          return dwRead;
         } else {
           this.isRunning = false;
-          return false;
+          return 0;
         }
       } else {
         DWORD rc = GetLastError();
         if (rc == ERROR_MORE_DATA) {
-          size = dwRead;
-          return true;
+          return dwRead;
         } else {
           this.isRunning = false;
-          return false;
+          return 0;
         }
       }
     } else {
-      size = 0;
-      return true;
+      return 0;
     }
   }
 
@@ -181,18 +178,12 @@ unittest {
   Process process = new Process("ruby -e '1000.times{|i| puts i}'");
   assert(process.isRunning);
   byte[] result;
-  while (true) {
+  while (process.isRunning) {
     byte[4096] buffer;
-    size_t size;
-    if (process.readAsync!(OutputType.STD_OUT)(buffer, size)) {
-      assert(process.isRunning);
-      if (0 < size) {
-        byte[] output = buffer[0 .. size];
-        result ~= output;
-      }
-    } else {
-      assert(!process.isRunning);
-      break;
+    size_t size = process.readAsync!(OutputType.STD_OUT)(buffer);
+    if (0 < size) {
+      byte[] output = buffer[0 .. size];
+      result ~= output;
     }
   }
   char[] expected = "";

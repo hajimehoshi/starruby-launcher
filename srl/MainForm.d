@@ -65,8 +65,8 @@ public class MainForm : Form, IView {
     with (this.outputTextBox = new TextBox()) {
       multiline = true;
       parent = this.mainPanel;
-      scrollBars = ScrollBars.VERTICAL;
       readOnly = true;
+      scrollBars = ScrollBars.VERTICAL;
     }
     with (this.runButton = new Button()) {
       text = "Run";    
@@ -208,6 +208,7 @@ public class MainForm : Form, IView {
   private void runButton_click(Control control, EventArgs e) {
     assert(this.model.fileName);
     assert(!this.model.isGameRunning);
+    this.outputTextBox.clear();
     this.model.runGame();
   }
 
@@ -221,23 +222,28 @@ public class MainForm : Form, IView {
 
   private void outputTimer_tick(OutputType ot)(Timer serder, EventArgs e) {
     assert(this.model.isGameRunning);
-    string previousText = "";
-    if (ot in this.previousTexts) {
-      previousText = this.previousTexts[ot];
+    if (!(ot in this.previousTexts)) {
+      this.previousTexts[ot] = "";
     }
     byte[4096] buffer;
     size_t size;
-    if (this.model.readAsyncGame!(ot)(buffer, size) && 0 < size) {
-      string text = previousText ~ cast(char[])buffer[0 .. size];
+    for(int i = 0;
+        0 < (size = this.model.readAsyncGame!(ot)(buffer)) && i < 5;
+        i++) {
+      string text = this.previousTexts[ot] ~ cast(char[])buffer[0 .. size];
       this.previousTexts[ot] = this.outputLine(text);
-    } else if (previousText) {
-      this.outputLine(previousText, false);
+    }
+    if (!this.model.isGameRunning) {
+      this.outputLine(this.previousTexts[ot], false);
     }
   }
 
   private char[] outputLine(string text, bool cutTail = true) {
+    if (this.outputTextBox.maxLength < text.length) {
+      text = text[($ - this.outputTextBox.maxLength) .. $];
+    }
     string restText = "";
-    string outputText = "";
+    string outputText = text.dup;
     for (int i = 0; i < text.length; i++) {
       byte b = cast(byte)text[i];
       if ((b & 0b_1111_1000) == 0b_1111_0000) {
@@ -245,16 +251,17 @@ public class MainForm : Form, IView {
           if ((cast(byte)text[i + 1] & 0b_1100_0000) == 0b_1000_0000 &&
               (cast(byte)text[i + 2] & 0b_1100_0000) == 0b_1000_0000 &&
               (cast(byte)text[i + 3] & 0b_1100_0000) == 0b_1000_0000) {
-            outputText ~= text[i .. (i + 4)];
             i += 3;
           } else {
-            outputText ~= "?";
+            outputText[i] = '?';
           }
         } else {
           if (cutTail) {
+            outputText.length = i;
             restText = text[i .. $].dup;
           } else {
-            outputText ~= std.string.repeat("?", text.length - i);
+            int l = text.length - i;
+            outputText[i .. (i + l)] = '?';
           }
           break;
         }
@@ -262,42 +269,45 @@ public class MainForm : Form, IView {
         if (i + 2 < text.length) {
           if ((cast(byte)text[i + 1] & 0b_1100_0000) == 0b_1000_0000 &&
               (cast(byte)text[i + 2] & 0b_1100_0000) == 0b_1000_0000) {
-            outputText ~= text[i .. (i + 3)];
             i += 2;
           } else {
-            outputText ~= "?";
+            outputText[i] = '?';
           }
         } else {
           if (cutTail) {
+            outputText.length = i;
             restText = text[i .. $].dup;
           } else {
-            outputText ~= std.string.repeat("?", text.length - i);
+            int l = text.length - i;
+            outputText[i .. (i + l)] = '?';
           }
           break;
         }
       } else if ((b & 0b_1110_0000) == 0b_1100_0000) {
         if (i + 1 < text.length) {
           if ((cast(byte)text[i + 1] & 0b_1100_0000) == 0b_1000_0000) {
-            outputText ~= text[i .. (i + 2)];
             i += 1;
           } else {
-            outputText ~= "?";
+            outputText[i] = '?';
           }
         } else {
           if (cutTail) {
+            outputText.length = i;
             restText = text[i .. $].dup;
           } else {
-            outputText ~= std.string.repeat("?", text.length - i);
+            int l = text.length - i;
+            outputText[i .. (i + l)] = '?';
           }
           break;
         }
       } else if ((b & 0b_1000_0000) == 0b_0000_0000) {
-        outputText ~= text[i];
+        // do nothing
       } else {
-        outputText ~= "?";
+        outputText[i] = '?';
       }
     }
     this.outputTextBox.appendText(outputText);
+    this.outputTextBox.scrollToCaret();
     return restText;
   }
 

@@ -60,17 +60,12 @@ public class Model {
     this.onUpdated();
   }
 
-  public bool readAsyncGame(OutputType ot)(byte[] buffer, out size_t size) in {
+  public size_t readAsyncGame(OutputType ot)(byte[] buffer) in {
     assert(buffer);
   } body {
-    if (this.isGameRunning) {
-      bool result = this.gameProcess.readAsync!(ot)(buffer, size);
-      this.onUpdated();
-      return result;
-    } else {
-      this.onUpdated();
-      return false;
-    }
+    size_t size = this.gameProcess.readAsync!(ot)(buffer);
+    this.onUpdated();
+    return size;
   }
 
   public bool isGameRunning() {
