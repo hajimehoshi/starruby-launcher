@@ -45,6 +45,9 @@ public class Model {
     assert(!this.isGameRunning);
     assert(this.fileName);
     string dir = std.path.getDirName(this.fileName);
+    if (dir == "") {
+      dir = ".";
+    }
     string base = std.path.getBaseName(this.fileName);
     string command = "ruby -C\"" ~ dir ~ "\" \"" ~ base ~ "\"";
     this.gameProcess = new Process(command);
